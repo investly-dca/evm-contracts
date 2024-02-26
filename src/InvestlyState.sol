@@ -24,20 +24,6 @@ contract InvestlyState {
     address public owner;
     address public logicContract;
 
-    event Deposit(address indexed token, address indexed user, uint256 amount);
-    event Withdraw(address indexed token, address indexed user, uint256 amount);
-    event SubscriptionAdded(
-        uint32 indexed subscriptionId,
-        address indexed user,
-        address indexed sellToken,
-        address indexed buyToken,
-        uint256 sellAmount,
-        address spender,
-        address swapTarget,
-        bytes swapCallData,
-        uint256 value
-    );
-
     // Mapping from token address to user address to balance
     mapping(address => mapping(address => uint256)) public tokenBalances;
 
@@ -65,13 +51,9 @@ contract InvestlyState {
     function updateBalance(address token, address user, uint256 amount, bool increase) external onlyLogicContract {
         if (increase) {
             tokenBalances[token][user] += amount;
-
-            emit Deposit(token, user, amount);
         } else {
             require(tokenBalances[token][user] >= amount, "INSUFFICIENT_BALANCE");
             tokenBalances[token][user] -= amount;
-
-            emit Withdraw(token, user, amount);
         }
     }
 
@@ -85,8 +67,13 @@ contract InvestlyState {
         uint256 value
     ) external onlyLogicContract {
         subscriptions[subscriptionId] = Subscription(user, sellToken, buyToken, spender, swapTarget, swapCallData, value);
-        subscriptionId++;
 
-        emit SubscriptionAdded(subscriptionId, user, sellToken, buyToken, spender, swapTarget, swapCallData, value);
+        subscriptionId++;
+    }
+
+    function removeSubscription(uint32 subscriptionId) external onlyLogicContract {
+        require(msg.sender == subscriptions[subscriptionId].user, "ONLY_SUBSCRIBER");
+
+        delete subscriptions[subscriptionId];
     }
 }

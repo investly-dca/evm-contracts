@@ -10,6 +10,20 @@ contract InvestlyLogic is OrallyConsumer {
     InvestlyState public state;
     address public exchangeProxy;
 
+    event Deposit(address indexed token, address indexed user, uint256 amount);
+    event Withdraw(address indexed token, address indexed user, uint256 amount);
+    event SubscriptionAdded(
+        uint32 indexed subscriptionId,
+        address indexed user,
+        address indexed sellToken,
+        address indexed buyToken,
+        uint256 sellAmount,
+        address spender,
+        address swapTarget,
+        bytes swapCallData,
+        uint256 value
+    );
+    event SubscriptionRemoved(uint32 indexed subscriptionId);
     event BoughtTokens(address indexed sellToken, address indexed buyToken, uint256 boughtAmount);
 
     constructor(address _executorsRegistry, address _stateAddress, address _exchangeProxy) OrallyConsumer(_executorsRegistry) {
@@ -33,7 +47,7 @@ contract InvestlyLogic is OrallyConsumer {
         emit Withdraw(token, msg.sender, amount);
     }
 
-    function makeSubscription(
+    function addSubscription(
         address sellToken,
         address buyToken,
         uint256 sellAmount,
@@ -43,6 +57,16 @@ contract InvestlyLogic is OrallyConsumer {
         uint256 value
     ) external {
         state.addSubscription(msg.sender, sellToken, buyToken, sellAmount, spender, swapTarget, swapCallData, value);
+
+        emit SubscriptionAdded(state.subscriptionId(), user, sellToken, buyToken, spender, swapTarget, swapCallData, value);
+    }
+
+    function removeSubscription(
+        uint32 subscriptionId
+    ) external {
+        state.removeSubscription(subscriptionId);
+
+        emit SubscriptionRemoved(subscriptionId);
     }
 
     function executeSwap(
