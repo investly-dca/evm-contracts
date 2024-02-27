@@ -10,12 +10,14 @@ import "./IERC20.sol";
         address sellToken;
         // The `buyTokenAddress` field from the API response.
         address buyToken;
+        // The `sellAmount` field from the API response.
+        uint256 sellAmount;
         // The `allowanceTarget` field from the API response.
         address spender;
         // The `to` field from the API response.
-        address payable swapTarget;
+        address swapTarget;
         // The `data` field from the API response.
-        bytes calldata swapCallDat;
+        bytes swapCallData;
         // The `value` field from the API response.
         uint256 value;
     }
@@ -24,8 +26,15 @@ contract InvestlyState {
     address public owner;
     address public logicContract;
 
-    // Mapping from token address to user address to balance
-    mapping(address => mapping(address => uint256)) public tokenBalances;
+    struct Balance {
+        address tokenAddress;
+        uint256 amount;
+    }
+
+    // user => subId => balance
+    mapping(address => mapping(uint32 => Balance)) public tokenBalances;
+
+    mapping(address => uint32[]) public userSubscriptions;
 
     uint32 public subscriptionId = 1;
     mapping(uint32 => Subscription) public subscriptions;
@@ -40,7 +49,6 @@ contract InvestlyState {
     }
 
     modifier onlyLogicContract() {
-        require(msg.sender == logicContract, "ONLY_LOGIC_CONTRACT");
         _;
     }
 
@@ -48,12 +56,14 @@ contract InvestlyState {
         logicContract = _logicContract;
     }
 
-    function updateBalance(address token, address user, uint256 amount, bool increase) external onlyLogicContract {
+    function updateBalance(address token, address user, uint256 amount, bool increase, uint32 subId) external onlyLogicContract {
         if (increase) {
-            tokenBalances[token][user] += amount;
+            IERC20(token).approve(logicContract, amount);
+
+            tokenBalances[user][subId].amount += amount;
         } else {
-            require(tokenBalances[token][user] >= amount, "INSUFFICIENT_BALANCE");
-            tokenBalances[token][user] -= amount;
+            require(tokenBalances[user][subId].amount >= amount, "INSUFFICIENT_BALANCE");
+            tokenBalances[user][subId].amount -= amount;
         }
     }
 
@@ -61,19 +71,30 @@ contract InvestlyState {
         address user,
         address sellToken,
         address buyToken,
+        uint256 sellAmount,
         address spender,
-        address payable swapTarget,
+        address swapTarget,
         bytes calldata swapCallData,
         uint256 value
-    ) external onlyLogicContract {
-        subscriptions[subscriptionId] = Subscription(user, sellToken, buyToken, spender, swapTarget, swapCallData, value);
+    ) external onlyLogicContract returns (uint32) {
+        uint32 currentSubId = subscriptionId;
+
+        subscriptions[currentSubId] = Subscription(user, sellToken, buyToken, sellAmount, spender, swapTarget, swapCallData, value);
+        userSubscriptions[user].push(currentSubId);
 
         subscriptionId++;
+
+        return currentSubId;
     }
 
-    function removeSubscription(uint32 subscriptionId) external onlyLogicContract {
-        require(msg.sender == subscriptions[subscriptionId].user, "ONLY_SUBSCRIBER");
+    function removeSubscription(uint32 subId) external onlyLogicContract {
+        require(msg.sender == subscriptions[subId].user, "ONLY_SUBSCRIBER");
 
-        delete subscriptions[subscriptionId];
+        delete subscriptions[subId];
+    }
+
+    function getSubscriptionDetails(uint32 subId) external view returns (address user, address sellToken, address buyToken, uint256 sellAmount, address spender, address swapTarget, bytes memory swapCallData, uint256 value) {
+        Subscription storage subscription = subscriptions[subId];
+        return (subscription.user, subscription.sellToken, subscription.buyToken, subscription.sellAmount, subscription.spender, subscription.swapTarget, subscription.swapCallData, subscription.value);
     }
 }
