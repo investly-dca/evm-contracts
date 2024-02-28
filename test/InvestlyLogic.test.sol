@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Test.sol";
 
 import "../src/IERC20.sol";
-import "../src/InvestlyDCACoordinator.sol";
+import "../src/InvestlyDCACoordinatorV2.sol";
 
 
 contract ForkTest is Test {
@@ -12,6 +12,7 @@ contract ForkTest is Test {
     address constant DEPLOYED_COORDINATOR_ADDRESS = 0x8DbC925568f81757a247BEabC9161A67929F08af;
 
     address constant ZERO_X_EXCHANGE_PROXY_ADDRESS = 0xDef1C0ded9bec7F1a1670819833240f027b25EfF;
+    address constant UNISWAP_V3_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address constant ORALLY_EXECUTORS_REGISTRY = 0xa5d1D2f23DaD7fDbB57BE3f0961a3D4ffdd4039A;
     address constant ORALLY_MULTICALL = 0xb65dc3dDA0A47B7bE4c43fE8eE124986D12aCDA3;
 
@@ -25,11 +26,11 @@ contract ForkTest is Test {
     IERC20 uni;
 
     function setUp() public {
-        arbitrumFork = vm.createFork("https://arbitrum-mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID");
+        arbitrumFork = vm.createFork("https://arbitrum-mainnet.infura.io/v3/326c1bc7ccee464887a035e5dad70e74");
         vm.selectFork(arbitrumFork);
 
-//        DCACoordinator = new InvestlyDCACoordinator(ORALLY_EXECUTORS_REGISTRY, ZERO_X_EXCHANGE_PROXY_ADDRESS);
-        DCACoordinator = InvestlyDCACoordinator(DEPLOYED_COORDINATOR_ADDRESS);
+        DCACoordinator = new InvestlyDCACoordinator(UNISWAP_V3_ROUTER, ORALLY_EXECUTORS_REGISTRY);
+//        DCACoordinator = InvestlyDCACoordinator(DEPLOYED_COORDINATOR_ADDRESS);
         usdt = IERC20(USDT_ADDRESS);
         uni = IERC20(UNI_ADDRESS);
     }
@@ -82,7 +83,6 @@ contract ForkTest is Test {
         vm.startPrank(USER);
 
         usdt.approve(address(DCACoordinator), 10000000);
-        usdt.approve(address(ZERO_X_EXCHANGE_PROXY_ADDRESS), 10000000);
 
         DCACoordinator.depositToken(USDT_ADDRESS, 10000000);
 
@@ -99,19 +99,11 @@ contract ForkTest is Test {
 
         vm.stopPrank();
 
-//        vm.startPrank(address(DCACoordinator));
-//        usdt.approve(address(ZERO_X_EXCHANGE_PROXY_ADDRESS), 10000000);
-//        vm.stopPrank();
-
-        vm.startPrank(address(DCACoordinator));
-        usdt.approve(ZERO_X_EXCHANGE_PROXY_ADDRESS, 10000000);
-
-        vm.stopPrank();
-
-        usdt.approve(ZERO_X_EXCHANGE_PROXY_ADDRESS, 10000000);
+        vm.startPrank(address(ORALLY_EXECUTORS_REGISTRY));
 
         DCACoordinator.executeSwap("0x...", subId, 0, 0);
 
+        vm.stopPrank();
 
 
         uint256 amount = DCACoordinator.tokenBalances(USER, USDT_ADDRESS);
