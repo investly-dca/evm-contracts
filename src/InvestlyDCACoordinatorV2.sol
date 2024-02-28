@@ -5,8 +5,8 @@ pragma abicoder v2;
 import "./IERC20.sol";
 import {OrallyConsumer} from "./icp-orally-interfaces/OrallyConsumer.sol";
 
-import 'node_modules/@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
-import 'node_modules/@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
+//import 'lib/v3-periphery/contracts/libraries/TransferHelper.sol';
+//import 'lib/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 
 contract InvestlyDCACoordinator is OrallyConsumer {
     address public owner;
