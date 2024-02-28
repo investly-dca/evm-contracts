@@ -21,6 +21,8 @@ contract Deploy_1 is Script {
         InvestlyLogic logic = new InvestlyLogic(_executorsRegistry, address(state), _exchangeProxy);
         console2.log("InvestlyLogic deployed at:", address(logic));
 
+        state.setLogicContract(address(logic));
+
         vm.stopBroadcast();
     }
 }
