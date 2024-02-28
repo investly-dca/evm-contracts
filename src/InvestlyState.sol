@@ -31,10 +31,16 @@ contract InvestlyState {
         uint256 amount;
     }
 
+    struct BoughtTokens {
+        address buyToken;
+        uint256 boughtAmount;
+    }
+
     // user => subId => balance
     mapping(address => mapping(uint32 => Balance)) public tokenBalances;
 
-    mapping(address => uint32[]) public userSubscriptions;
+    // subId => subId => boughtTokens
+    mapping(address => mapping(uint32 => BoughtTokens)) public boughtTokens;
 
     uint32 public subscriptionId = 1;
     mapping(uint32 => Subscription) public subscriptions;
@@ -49,6 +55,7 @@ contract InvestlyState {
     }
 
     modifier onlyLogicContract() {
+        require(msg.sender == logicContract, "ONLY_LOGIC_CONTRACT");
         _;
     }
 
@@ -61,10 +68,16 @@ contract InvestlyState {
             IERC20(token).approve(logicContract, amount);
 
             tokenBalances[user][subId].amount += amount;
+            tokenBalances[user][subId].tokenAddress = token;
         } else {
             require(tokenBalances[user][subId].amount >= amount, "INSUFFICIENT_BALANCE");
             tokenBalances[user][subId].amount -= amount;
+            tokenBalances[user][subId].tokenAddress = token;
         }
+    }
+
+    function updateBoughtTokens(address user, uint32 subId, address buyToken, uint256 boughtAmount) external onlyLogicContract {
+        boughtTokens[user][subId] = BoughtTokens(buyToken, boughtAmount);
     }
 
     function addSubscription(
@@ -80,7 +93,6 @@ contract InvestlyState {
         uint32 currentSubId = subscriptionId;
 
         subscriptions[currentSubId] = Subscription(user, sellToken, buyToken, sellAmount, spender, swapTarget, swapCallData, value);
-        userSubscriptions[user].push(currentSubId);
 
         subscriptionId++;
 

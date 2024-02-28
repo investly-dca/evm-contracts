@@ -5,6 +5,7 @@ pragma solidity ^0.8.20;
 import "./IERC20.sol";
 import "./InvestlyState.sol";
 import {OrallyConsumer} from "./icp-orally-interfaces/OrallyConsumer.sol";
+import "forge-std/console.sol";
 
 contract InvestlyLogic is OrallyConsumer {
     InvestlyState public state;
@@ -28,6 +29,7 @@ contract InvestlyLogic is OrallyConsumer {
 
     constructor(address _executorsRegistry, address _stateAddress, address _exchangeProxy) OrallyConsumer(_executorsRegistry) {
         state = InvestlyState(_stateAddress);
+        exchangeProxy = _exchangeProxy;
     }
 
     // Payable fallback to allow this contract to receive protocol fee refunds.
@@ -96,6 +98,8 @@ contract InvestlyLogic is OrallyConsumer {
         IERC20 sellToken = IERC20(_sellToken);
         IERC20 buyToken = IERC20(_buyToken);
 
+        console.logAddress(swapTarget);
+        console.logAddress(exchangeProxy);
         // Checks that the swapTarget is actually the address of 0x ExchangeProxy
         require(swapTarget == exchangeProxy, "Target not ExchangeProxy");
 
@@ -114,7 +118,7 @@ contract InvestlyLogic is OrallyConsumer {
         // Use our current buyToken balance to determine how much we've bought.
         boughtAmount = buyToken.balanceOf(address(this)) - boughtAmount;
 
-        state.updateBalance(_buyToken, user, boughtAmount, true, subId);
+        state.updateBoughtTokens(user, subId, _buyToken, boughtAmount);
 
         emit BoughtTokens(subId, _sellToken, _buyToken, boughtAmount);
     }
