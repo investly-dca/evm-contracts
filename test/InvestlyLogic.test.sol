@@ -41,13 +41,8 @@ contract ForkTest is Test {
 
         usdt.approve(address(DCACoordinator), 10000000);
 
-        DCACoordinator.depositToken(USDT_ADDRESS, 10000000);
+        DCACoordinator.depositTokenAndSubscribe(USDT_ADDRESS, UNI_ADDRESS, 10000000, 1000000);
 
-        DCACoordinator.addSubscription(
-            USDT_ADDRESS,
-            UNI_ADDRESS,
-            1000000
-        );
         uint32 subId = 1;
 
         // check deposited user balance
@@ -79,20 +74,15 @@ contract ForkTest is Test {
 
         usdt.approve(address(DCACoordinator), 10000000);
 
-        DCACoordinator.depositToken(USDT_ADDRESS, 10000000);
 
-        DCACoordinator.addSubscription(
-            USDT_ADDRESS,
-            UNI_ADDRESS,
-            1000000
-        );
+        DCACoordinator.depositTokenAndSubscribe(USDT_ADDRESS, UNI_ADDRESS, 10000000, 1000000);
         uint32 subId = 1;
 
         vm.stopPrank();
 
         vm.startPrank(address(ORALLY_MULTICALL));
 
-        DCACoordinator.executeSwap("0x...", subId, 0, 0);
+        DCACoordinator.executeSwap("0x...", subId, 0);
 
         vm.stopPrank();
 

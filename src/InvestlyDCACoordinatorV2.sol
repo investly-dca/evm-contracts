@@ -29,13 +29,7 @@ contract InvestlyDCACoordinator is OrallyConsumer {
 
     event Deposit(address indexed token, address indexed user, uint256 amount);
     event Withdraw(address indexed token, address indexed user, uint256 amount);
-    event SubscriptionAdded(
-        uint32 subId,
-        address indexed user,
-        address sellToken,
-        address indexed buyToken,
-        uint256 sellAmount
-    );
+    event SubscriptionAdded(uint32 subId, address indexed user, address sellToken, address indexed buyToken, uint256 sellAmount);
     event SubscriptionRemoved(uint32 indexed subId);
     event BoughtTokens(uint32 indexed subId, address indexed sellToken, address indexed buyToken, uint256 boughtAmount);
 
@@ -49,7 +43,17 @@ contract InvestlyDCACoordinator is OrallyConsumer {
         _;
     }
 
-    function depositToken(address token, uint256 amount) external {
+    function depositTokenAndSubscribe(
+        address sellToken,
+        address buyToken,
+        uint256 totalAmount,
+        uint256 sellAmount
+    ) external returns (uint32) {
+        depositToken(sellToken, totalAmount);
+        return addSubscription(sellToken, buyToken, sellAmount);
+    }
+
+    function depositToken(address token, uint256 amount) internal {
         TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
         _updateBalance(token, msg.sender, amount, true);
 
@@ -67,7 +71,7 @@ contract InvestlyDCACoordinator is OrallyConsumer {
         address sellToken,
         address buyToken,
         uint256 sellAmount
-    ) external returns (uint32) {
+    ) internal returns (uint32) {
         uint32 subId = _addSubscription(msg.sender, sellToken, buyToken, sellAmount);
 
         emit SubscriptionAdded(subId, msg.sender, sellToken, buyToken, sellAmount);
@@ -84,7 +88,7 @@ contract InvestlyDCACoordinator is OrallyConsumer {
     }
 
     function executeSwap(
-        string memory, uint256 _subId, uint256, uint256
+        string memory, uint256 _subId, uint256
     ) external onlyExecutor {
         uint32 subId = uint32(_subId);
         Subscription storage subscription = subscriptions[subId];
